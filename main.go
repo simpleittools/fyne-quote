@@ -6,7 +6,10 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"image/color"
 	"math/rand"
 	"time"
 )
@@ -17,22 +20,54 @@ type Quote struct {
 	Tag    string `json:"tag"`
 }
 
+type CustomTheme struct {
+	fyne.Theme
+}
+
 //go:embed quotesData.json
 var quotesData []byte
 
+func (t *CustomTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	if name == theme.ColorNameDisabled {
+		// detect light or dark
+		if variant == theme.VariantDark {
+			return color.NRGBA{R: 200, G: 200, B: 200, A: 220}
+		} else {
+			return color.NRGBA{R: 0, G: 0, B: 0, A: 180}
+		}
+
+	}
+
+	return t.Theme.Color(name, variant)
+}
+
 func main() {
 	myApp := app.New()
+	myApp.Settings().SetTheme(&CustomTheme{Theme: theme.DefaultTheme()})
 	myWindow := myApp.NewWindow("Daily Quote")
 
-	quoteTextLabel := widget.NewLabel("")
-	quoteTextLabel.Wrapping = fyne.TextWrapWord
+	quoteTextLabel := widget.NewLabel("Quote:")
+	quoteText := widget.NewMultiLineEntry()
+	quoteText.Wrapping = fyne.TextWrapWord
+	quoteText.Disable()
 
-	quoteAuthorLabel := widget.NewLabel("")
+	quoteAuthorLabel := widget.NewLabel("Author:")
+	quoteAuthor := widget.NewMultiLineEntry()
+	quoteAuthor.Wrapping = fyne.TextWrapWord
+	quoteAuthor.Disable()
+
+	quoteCopyButton := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+		myWindow.Clipboard().SetContent(quoteText.Text)
+	})
+
+	authorCopyButton := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
+		myWindow.Clipboard().SetContent(quoteAuthor.Text)
+	})
 
 	updateQuote := func() {
 		quote := getQuote()
-		quoteTextLabel.SetText("Quote: " + quote.Text)
-		quoteAuthorLabel.SetText("Author: " + quote.Author)
+		quoteText.SetText(quote.Text)
+		quoteAuthor.SetText(quote.Author)
 	}
 
 	updateQuote()
@@ -45,20 +80,29 @@ func main() {
 		myApp.Quit()
 	})
 
+	//contentGrid := container.New(layout.NewFormLayout(),
+	//	quoteTextLabel, quoteText, quoteCopyButton,
+	//	quoteAuthorLabel, quoteAuthor, authorCopyButton,
+	//)
+	quoteRow := container.New(layout.NewBorderLayout(nil, nil, quoteTextLabel, quoteCopyButton),
+		quoteTextLabel, quoteCopyButton, quoteText)
+
+	authorRow := container.New(layout.NewBorderLayout(nil, nil, quoteAuthorLabel, authorCopyButton),
+		quoteAuthorLabel, authorCopyButton, quoteAuthor)
+
+	contentArea := container.NewVBox(quoteRow, authorRow)
+
 	buttonContainer := container.NewHBox(newQuoteButton, quitButton)
 
-	layout := container.NewBorder(
+	pageLayout := container.NewBorder(
 		nil,
 		buttonContainer,
 		nil,
 		nil,
-		container.NewVBox(
-			quoteTextLabel,
-			quoteAuthorLabel,
-		),
+		contentArea,
 	)
 
-	myWindow.SetContent(layout)
+	myWindow.SetContent(pageLayout)
 	myWindow.Resize(fyne.NewSize(400, 300))
 	myWindow.ShowAndRun()
 
