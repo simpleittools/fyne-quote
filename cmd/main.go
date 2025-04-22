@@ -9,7 +9,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"image/color"
+	"github.com/simpleittools/fyne-quote/pkg/assets"
 	"math/rand"
 	"time"
 )
@@ -22,23 +22,6 @@ type Quote struct {
 
 type CustomTheme struct {
 	fyne.Theme
-}
-
-//go:embed quotesData.json
-var quotesData []byte
-
-func (t *CustomTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	if name == theme.ColorNameDisabled {
-		// detect light or dark
-		if variant == theme.VariantDark {
-			return color.NRGBA{R: 200, G: 200, B: 200, A: 220}
-		} else {
-			return color.NRGBA{R: 0, G: 0, B: 0, A: 180}
-		}
-
-	}
-
-	return t.Theme.Color(name, variant)
 }
 
 func main() {
@@ -110,7 +93,7 @@ func main() {
 
 func getQuote() Quote {
 	var quotes []Quote
-	if err := json.Unmarshal(quotesData, &quotes); err != nil {
+	if err := json.Unmarshal(assets.GetQuotesData(), &quotes); err != nil {
 		return Quote{
 			Text:   "Error: unable to decode quotes file",
 			Author: "",
